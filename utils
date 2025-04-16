@@ -1,0 +1,10 @@
+#ifndef UTILS_H
+#define UTILS_H
+
+#include <string>
+
+bool isValidDouble(const std::string& str);
+std::string addStrings(const std::string& num1, const std::string& num2);
+std::string trim(const std::string& str);
+
+#endif
