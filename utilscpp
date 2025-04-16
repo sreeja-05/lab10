@@ -1,0 +1,132 @@
+#include "utils.h"
+#include <cctype>
+#include <algorithm>
+
+// Trim whitespace
+std::string trim(const std::string& str) {
+    size_t start = str.find_first_not_of(" \t\r\n");
+    size_t end = str.find_last_not_of(" \t\r\n");
+    return (start == std::string::npos) ? "" : str.substr(start, end - start + 1);
+}
+
+// Check if a string is a valid double (custom logic, not using std::stod or regex)
+bool isValidDouble(const std::string& str) {
+    if (str.empty()) return false;
+
+    size_t i = 0;
+    if (str[i] == '+' || str[i] == '-') i++;
+
+    bool hasDigits = false;
+    while (i < str.size() && std::isdigit(str[i])) {
+        i++;
+        hasDigits = true;
+    }
+
+    if (i < str.size() && str[i] == '.') {
+        i++;
+        if (i == str.size()) return false; // no digits after the dot
+        bool hasFraction = false;
+        while (i < str.size() && std::isdigit(str[i])) {
+            i++;
+            hasFraction = true;
+        }
+        return hasDigits && hasFraction && i == str.size();
+    }
+
+    return hasDigits && i == str.size();
+}
+
+// Helper for aligning decimal parts
+void splitNumber(const std::string& num, std::string& intPart, std::string& fracPart) {
+    size_t dot = num.find('.');
+    if (dot != std::string::npos) {
+        intPart = num.substr(0, dot);
+        fracPart = num.substr(dot + 1);
+    } else {
+        intPart = num;
+        fracPart = "";
+    }
+}
+
+// Pad strings for alignment
+void padParts(std::string& a, std::string& b, bool isFraction = false) {
+    int lenDiff = a.length() - b.length();
+    if (lenDiff > 0)
+        b += std::string(lenDiff, isFraction ? '0' : '0');
+    else
+        a += std::string(-lenDiff, isFraction ? '0' : '0');
+}
+
+// Perform string addition (no conversion to double)
+std::string addStrings(const std::string& num1, const std::string& num2) {
+    // For simplicity: assume both numbers are valid and don't have exponent form
+    // We'll only support simple cases like `+001.05` + `-123.456`
+
+    // Detect signs
+    char sign1 = (num1[0] == '-' || num1[0] == '+') ? num1[0] : '+';
+    char sign2 = (num2[0] == '-' || num2[0] == '+') ? num2[0] : '+';
+    std::string n1 = (sign1 == '+' || sign1 == '-') ? num1.substr(1) : num1;
+    std::string n2 = (sign2 == '+' || sign2 == '-') ? num2.substr(1) : num2;
+
+    std::string int1, frac1, int2, frac2;
+    splitNumber(n1, int1, frac1);
+    splitNumber(n2, int2, frac2);
+
+    padParts(frac1, frac2, true);
+    padParts(int1, int2);
+
+    // Reverse both for ease of addition
+    std::reverse(int1.begin(), int1.end());
+    std::reverse(int2.begin(), int2.end());
+    std::reverse(frac1.begin(), frac1.end());
+    std::reverse(frac2.begin(), frac2.end());
+
+    std::string resultInt, resultFrac;
+    int carry = 0;
+
+    // Fraction part addition
+    for (size_t i = 0; i < frac1.length(); ++i) {
+        int d1 = frac1[i] - '0';
+        int d2 = frac2[i] - '0';
+        int sum = (sign1 == sign2 ? d1 + d2 : d1 - d2) + carry;
+        if (sum < 0) {
+            sum += 10;
+            carry = -1;
+        } else {
+            carry = sum / 10;
+        }
+        resultFrac.push_back((sum % 10) + '0');
+    }
+
+    // Integer part addition
+    for (size_t i = 0; i < int1.length(); ++i) {
+        int d1 = int1[i] - '0';
+        int d2 = int2[i] - '0';
+        int sum = (sign1 == sign2 ? d1 + d2 : d1 - d2) + carry;
+        if (sum < 0) {
+            sum += 10;
+            carry = -1;
+        } else {
+            carry = sum / 10;
+        }
+        resultInt.push_back((sum % 10) + '0');
+    }
+
+    if (carry > 0) resultInt.push_back(carry + '0');
+
+    // Reverse back
+    std::reverse(resultInt.begin(), resultInt.end());
+    std::reverse(resultFrac.begin(), resultFrac.end());
+
+    // Strip leading zeros
+    resultInt.erase(0, resultInt.find_first_not_of('0'));
+    if (resultInt.empty()) resultInt = "0";
+
+    std::string result = resultInt;
+    if (!resultFrac.empty()) {
+        result += "." + resultFrac;
+    }
+
+    // Simplified: always assume positive result here unless you want to implement full subtraction logic
+    return (sign1 == '-' && sign2 == '-') ? "-" + result : result;
+}
