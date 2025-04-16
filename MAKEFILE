@@ -1,0 +1,15 @@
+CXX = g++
+CXXFLAGS = -std=c++11 -Wall
+OBJ = main.o utils.o
+
+main: $(OBJ)
+	$(CXX) $(CXXFLAGS) -o main $(OBJ)
+
+main.o: main.cpp utils.h
+	$(CXX) $(CXXFLAGS) -c main.cpp
+
+utils.o: utils.cpp utils.h
+	$(CXX) $(CXXFLAGS) -c utils.cpp
+
+clean:
+	rm -f *.o main
